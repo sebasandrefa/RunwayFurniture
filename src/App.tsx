@@ -179,11 +179,15 @@ export default function App() {
         requestAnimationFrame(() =>
           requestAnimationFrame(() => {
             ScrollTrigger.refresh()
+            // a section asked for (the Home button, or coming back to the home page): the page is
+            // already resting on it when the curtain lifts
+            const el = section ? document.querySelector<HTMLElement>(section) : null
+            if (el) {
+              jumpTo(Math.max(0, el.getBoundingClientRect().top + window.scrollY))
+              ScrollTrigger.update()
+            }
             setCurtain(null)
             busy.current = false
-            if (!section) return
-            const el = document.querySelector<HTMLElement>(section)
-            if (el && el.getBoundingClientRect().top > window.innerHeight * 0.5) window.setTimeout(() => scrollToTarget(section), 750)
           }),
         )
       }, 800)
@@ -192,8 +196,12 @@ export default function App() {
       const d = (e as CustomEvent<{ page: PageId; section?: string }>).detail
       go(d.page, d.section)
     }
+    // the browser's back and forward buttons (and the swipe back on phones): coming back to the home
+    // page lands on the Explore index the visitor left from, not on the opening film
     const onPop = () => {
-      if (!fromHash()) go(pageFromHash(), undefined, false)
+      if (fromHash()) return
+      const p = pageFromHash()
+      go(p, p === 'home' ? '#explore' : undefined, false)
     }
     window.addEventListener('site:page', onPage)
     window.addEventListener('popstate', onPop)

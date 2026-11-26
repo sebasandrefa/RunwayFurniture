@@ -135,7 +135,7 @@ export function useWide() {
  * pointer) glides the visible part from the horizon down to the pool, with a transform (cheap on the
  * graphics card).
  */
-export function HeroBackdrop({ active, slice }: { active: boolean; slice?: MotionValue<number> }) {
+export function HeroBackdrop({ active, load = true, slice }: { active: boolean; load?: boolean; slice?: MotionValue<number> }) {
   const { tx } = useLang()
   const box = useRef<HTMLDivElement>(null)
   const ref = useRef<HTMLVideoElement>(null)
@@ -166,13 +166,13 @@ export function HeroBackdrop({ active, slice }: { active: boolean; slice?: Motio
         <motion.div className="absolute inset-x-0 top-0 h-full will-change-transform" style={{ y, height: frameH }}>
           <video
             ref={ref}
-            src={film}
+            src={load ? film : undefined}
             className="hero-film absolute inset-0 h-full w-full object-cover"
             muted
             autoPlay
             loop
             playsInline
-            preload="auto"
+            preload={load ? 'auto' : 'none'}
             disablePictureInPicture
             disableRemotePlayback
             controls={false}

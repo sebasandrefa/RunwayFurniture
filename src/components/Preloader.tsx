@@ -21,12 +21,15 @@ export function Preloader({
   onDone,
   onReveal,
   onSettle,
+  onScene,
   reduced,
 }: {
   onDone: () => void
   onReveal?: () => void
   /** the camera has come to rest (or the film is skipped): a quiet moment to build the rest of the site */
   onSettle?: () => void
+  /** the opening scene is on screen: the page may start fetching heavy media (the hero film) */
+  onScene?: () => void
   reduced: boolean
 }) {
   const { t } = useLang()
@@ -80,6 +83,9 @@ export function Preloader({
   useEffect(() => {
     if (settled) onSettle?.()
   }, [settled, onSettle])
+  useEffect(() => {
+    if (ready) onScene?.()
+  }, [ready, onScene])
   useEffect(() => {
     // a short moment to read the titles once they are in, then the site
     if (!settled || (window as { __introT?: number }).__introT !== undefined) return

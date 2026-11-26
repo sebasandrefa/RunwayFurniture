@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { brand, navItems } from '../data/site'
 
 /** The few sections linked straight from the header; the full list lives in the menu. */
-const HEADER_LINKS = ['#projects', '#hotels', '#collections', '#kitchens', '#founder', '#team', '#live-different']
+const HEADER_LINKS = ['#explore', '#projects', '#hotels', '#collections', '#kitchens', '#founder', '#team', '#live-different']
 /** On narrower desktops (1024–1439px) these two wait in the menu so the header never crowds. */
 const WIDE_ONLY = ['#hotels', '#kitchens']
 import { langs, useLang } from '../i18n'
@@ -18,7 +18,7 @@ export function Navigation({ ready }: { ready: boolean }) {
   const [open, setOpen] = useState(false)
   const page = usePage()
   // the link of the page on screen keeps its gold underline
-  const here = (href: string) => page !== 'home' && pageOfSection(href) === page
+  const here = (href: string) => pageOfSection(href) === page
   const [hovered, setHovered] = useState(0)
   const [scrolled, setScrolled] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)

@@ -25,6 +25,7 @@ const PAGES = Object.keys(pageTitle) as PageId[]
 const SECTION_PAGE: Record<string, PageId> = {
   '#top': 'home',
   '#elite': 'home',
+  '#explore': 'home',
   '#awards': 'home',
   '#clients': 'home',
   '#projects': 'projects',

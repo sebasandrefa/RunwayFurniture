@@ -7,10 +7,11 @@ import { categories, categoryLabel, projects, thumb, type Category, type Project
 import { useLang } from '../i18n'
 import { easeLuxe } from '../lib/motion'
 import { jumpBy, ScrollTrigger } from '../lib/scroll'
+import { takeProjectsFilter } from '../lib/pages'
 
 export function Projects({ onOpen }: { onOpen: (p: Project) => void }) {
   const { t, tx } = useLang()
-  const [filter, setFilter] = useState<Category | 'All'>('All')
+  const [filter, setFilter] = useState<Category | 'All'>(() => (takeProjectsFilter() as Category | null) ?? 'All')
   const [showAll, setShowAll] = useState(false)
   const filtered = filter === 'All' ? projects : projects.filter((p) => p.category === filter)
   const INITIAL = 9

@@ -1,6 +1,7 @@
 import Lenis from 'lenis'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { currentPage, openPage, pageOfSection } from './pages'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -22,6 +23,11 @@ export function initSmoothScroll(reduced: boolean) {
 }
 
 export function scrollToTarget(target: string | HTMLElement, tries = 0) {
+  // a section that lives on another page: open that page first
+  if (typeof target === 'string' && tries === 0) {
+    const page = pageOfSection(target)
+    if (page && page !== currentPage()) return openPage(page, target)
+  }
   const el = typeof target === 'string' ? document.querySelector<HTMLElement>(target) : target
   if (!el) {
     // the page is still being built section by section: build the rest now, then go
@@ -35,6 +41,12 @@ export function scrollToTarget(target: string | HTMLElement, tries = 0) {
   // Move focus for keyboard and screen-reader users.
   el.setAttribute('tabindex', '-1')
   el.focus({ preventScroll: true })
+}
+
+/** Put the page at a given height at once (a new page starts at the top). */
+export function jumpTo(y: number) {
+  if (lenis) lenis.scrollTo(y, { immediate: true, force: true })
+  window.scrollTo(0, y)
 }
 
 /** Move the page by a few pixels at once, without any smoothing (used to keep something in place

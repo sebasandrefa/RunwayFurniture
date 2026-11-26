@@ -6,6 +6,7 @@ import { hospitalityScenes, thumb } from '../data/site'
 import { useLang } from '../i18n'
 import { gsap, ScrollTrigger } from '../lib/scroll'
 import { scrollToTarget } from '../lib/scroll'
+import { requestProjectsFilter } from '../lib/pages'
 
 /**
  * Pinned, horizontally-scrolling sequence of hospitality "scenes" (GSAP ScrollTrigger).
@@ -102,7 +103,7 @@ export function Hospitality() {
               href="#projects"
               variant="ghost"
               onClick={() => {
-                window.dispatchEvent(new CustomEvent('projects:filter', { detail: 'Luxury Hospitality' }))
+                requestProjectsFilter('Luxury Hospitality')
                 scrollToTarget('#projects')
               }}
             >

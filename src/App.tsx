@@ -1,11 +1,13 @@
-import { AnimatePresence, LayoutGroup } from 'motion/react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Navigation } from './components/Navigation'
 import { Preloader } from './components/Preloader'
 import { picReady } from './components/Pic'
 import { projects, type Project } from './data/site'
-import { useCalmScroll, usePrefersReducedMotion } from './lib/motion'
-import { initSmoothScroll, lockScroll, restorePlace, ScrollTrigger } from './lib/scroll'
+import { easeCine, easeLuxe, useCalmScroll, usePrefersReducedMotion } from './lib/motion'
+import { initSmoothScroll, jumpTo, lockScroll, restorePlace, scrollToTarget, ScrollTrigger } from './lib/scroll'
+import { currentPage, pageFromHash, pageTitle, setCurrentPage, type PageId } from './lib/pages'
+import { Explore } from './sections/Explore'
 import { ScrollProgress } from './components/ScrollProgress'
 import { WhatsAppButton } from './components/WhatsAppButton'
 import { CinemaReveal } from './sections/CinemaReveal'
@@ -39,6 +41,9 @@ const fromHash = () => {
   return m ? (projects.find((p) => p.slug === m[1]) ?? null) : null
 }
 
+/** How many sections each page holds (its enquiry form included), for the step-by-step build. */
+const PAGE_SIZE: Record<PageId, number> = { home: 7, projects: 3, hotels: 3, collections: 3, kitchens: 2, about: 7, team: 2, 'live-different': 2 }
+
 export default function App() {
   const { t, lang } = useLang()
   const reduced = usePrefersReducedMotion()
@@ -47,8 +52,11 @@ export default function App() {
   // reloaded (or reached with the browser's back/forward buttons).
   const [intro] = useState(() => {
     const nav = performance.getEntriesByType?.('navigation')[0] as PerformanceNavigationTiming | undefined
-    return !nav || (nav.type !== 'reload' && nav.type !== 'back_forward')
+    // and only on the home page: a link to another page opens that page straight away
+    return (!nav || (nav.type !== 'reload' && nav.type !== 'back_forward')) && pageFromHash() === 'home'
   })
+  const [page, setPage] = useState<PageId>(pageFromHash)
+  useEffect(() => setCurrentPage(page), [page])
   const [ready, setReady] = useState(!intro)
   // During the opening film only the hero is built: the rest of the site (and its photos) waits until
   // the camera comes to rest, so the film downloads and plays without competing for the connection.
@@ -62,7 +70,7 @@ export default function App() {
   // all at once froze the page for up to a second just as the opening film began (longer on modest
   // phones and computers). A link to a section, or a visitor racing ahead, builds the rest at once.
   const [built, setBuilt] = useState(0)
-  const total = 21
+  const total = PAGE_SIZE[page]
   useEffect(() => {
     if (!rest || built >= total) return
     if (built === 0 && /^#(?!\/)./.test(location.hash)) return void setBuilt(total)
@@ -140,33 +148,79 @@ export default function App() {
     setProject(p)
   }
   const close = useCallback(() => {
-    history.pushState(null, '', window.location.pathname + window.location.search)
+    const p = currentPage()
+    history.pushState(null, '', p === 'home' ? window.location.pathname + window.location.search : `#/${p}`)
     setProject(null)
   }, [])
 
-  const parts = [
-    <Statement key="statement" />,
-    <Story key="story" />,
-    <CinemaReveal key="cinema" />,
-    <Elite key="elite" />,
-    <Projects key="projects" onOpen={open} />,
-    <Hospitality key="hospitality" />,
-    <ConceptReality key="concept" />,
-    <SignatureHotels key="hotels" />,
-    <Collections key="collections" />,
-    <NewCollection key="new" />,
-    <OutdoorKitchens key="kitchens" />,
-    <Factory key="factory" />,
-    <Founder key="founder" />,
-    <FounderFilm key="founder-film" />,
-    <Team key="team" />,
-    <LiveDifferent key="live" />,
-    <Films key="films" />,
-    <Awards key="awards" />,
-    <Clients key="clients" />,
-    <Global key="global" />,
-    <Contact key="contact" />,
-  ]
+  // Moving between pages: a curtain closes with the page's name, the new page is put in place at
+  // the top behind it, and the curtain lifts.
+  const [curtain, setCurtain] = useState<PageId | null>(null)
+  const busy = useRef(false)
+  useEffect(() => {
+    const go = (p: PageId, section?: string, push = true) => {
+      if (busy.current) return
+      if (p === currentPage()) {
+        if (section) scrollToTarget(section)
+        return
+      }
+      busy.current = true
+      setCurtain(p)
+      window.setTimeout(() => {
+        if (push) history.pushState(null, '', p === 'home' ? window.location.pathname + window.location.search : `#/${p}`)
+        setCurrentPage(p)
+        setPage(p)
+        setBuilt(99)
+        setReady(true)
+        setRevealed(true)
+        setScene(true)
+        jumpTo(0)
+        // two frames: the new page is built and measured before the curtain lifts
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            ScrollTrigger.refresh()
+            setCurtain(null)
+            busy.current = false
+            if (!section) return
+            const el = document.querySelector<HTMLElement>(section)
+            if (el && el.getBoundingClientRect().top > window.innerHeight * 0.5) window.setTimeout(() => scrollToTarget(section), 750)
+          }),
+        )
+      }, 800)
+    }
+    const onPage = (e: Event) => {
+      const d = (e as CustomEvent<{ page: PageId; section?: string }>).detail
+      go(d.page, d.section)
+    }
+    const onPop = () => {
+      if (!fromHash()) go(pageFromHash(), undefined, false)
+    }
+    window.addEventListener('site:page', onPage)
+    window.addEventListener('popstate', onPop)
+    return () => {
+      window.removeEventListener('site:page', onPage)
+      window.removeEventListener('popstate', onPop)
+    }
+  }, [])
+
+  const sections: Record<PageId, ReactNode[]> = {
+    home: [
+      <Statement key="statement" />,
+      <CinemaReveal key="cinema" />,
+      <Elite key="elite" />,
+      <Explore key="explore" />,
+      <Awards key="awards" />,
+      <Clients key="clients" />,
+    ],
+    projects: [<Projects key="projects" onOpen={open} />, <ConceptReality key="concept" />],
+    hotels: [<Hospitality key="hospitality" />, <SignatureHotels key="hotels" />],
+    collections: [<Collections key="collections" />, <NewCollection key="new" />],
+    kitchens: [<OutdoorKitchens key="kitchens" />],
+    about: [<Story key="story" />, <Founder key="founder" />, <FounderFilm key="founder-film" />, <Factory key="factory" />, <Films key="films" />, <Global key="global" />],
+    team: [<Team key="team" />],
+    'live-different': [<LiveDifferent key="live" />],
+  }
+  const parts = [...sections[page], <Contact key="contact" />]
 
   return (
     <LayoutGroup>
@@ -177,12 +231,49 @@ export default function App() {
       {intro && <Preloader onDone={onReady} onReveal={onReveal} onSettle={onSettle} onScene={onScene} reduced={reduced} />}
       <Navigation ready={ready} />
       <main id="main">
-        <Hero ready={ready} revealed={revealed} reduced={reduced} load={scene || revealed} />
-        {parts.slice(0, built)}
+        {page === 'home' && <Hero ready={ready} revealed={revealed} reduced={reduced} load={scene || revealed} />}
+        {page !== 'home' && <div className="h-20 md:h-24" aria-hidden />}
+        <div key={page}>{parts.slice(0, built)}</div>
       </main>
       {built >= parts.length && <Footer />}
       <WhatsAppButton ready={ready} />
+      <AnimatePresence>{curtain && <PageCurtain key="curtain" page={curtain} />}</AnimatePresence>
       <AnimatePresence>{project && <ProjectDetail key="detail" project={project} onClose={close} onNavigate={open} />}</AnimatePresence>
     </LayoutGroup>
+  )
+}
+
+/** The curtain drawn between two pages, carrying the name of the page that is opening. */
+function PageCurtain({ page }: { page: PageId }) {
+  const { tx } = useLang()
+  return (
+    <motion.div
+      aria-hidden
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-ink"
+      initial={{ clipPath: 'inset(100% 0% 0% 0%)' }}
+      animate={{ clipPath: 'inset(0% 0% 0% 0%)' }}
+      exit={{ clipPath: 'inset(0% 0% 100% 0%)' }}
+      transition={{ duration: 0.8, ease: easeCine }}
+    >
+      <span className="grain" />
+      <div className="relative flex flex-col items-center gap-6 overflow-hidden px-5">
+        <motion.span
+          className="block h-px w-16 origin-center bg-gold"
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: 0.8, ease: easeLuxe, delay: 0.25 }}
+        />
+        <span className="block overflow-hidden pb-[0.08em]">
+          <motion.span
+            className="display block text-center text-[16vw] text-bone uppercase sm:text-[11vw] lg:text-[8vw]"
+            initial={{ y: '110%' }}
+            animate={{ y: '0%' }}
+            transition={{ duration: 0.9, ease: easeLuxe, delay: 0.2 }}
+          >
+            {tx(pageTitle[page])}
+          </motion.span>
+        </span>
+      </div>
+    </motion.div>
   )
 }

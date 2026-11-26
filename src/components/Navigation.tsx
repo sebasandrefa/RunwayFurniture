@@ -4,17 +4,21 @@ import { useEffect, useRef, useState } from 'react'
 import { brand, navItems } from '../data/site'
 
 /** The few sections linked straight from the header; the full list lives in the menu. */
-const HEADER_LINKS = ['#projects', '#hotels', '#collections', '#kitchens', '#founder', '#live-different']
-/** On narrower desktops (1024–1279px) these two wait in the menu so the header never crowds. */
+const HEADER_LINKS = ['#projects', '#hotels', '#collections', '#kitchens', '#founder', '#team', '#live-different']
+/** On narrower desktops (1024–1439px) these two wait in the menu so the header never crowds. */
 const WIDE_ONLY = ['#hotels', '#kitchens']
 import { langs, useLang } from '../i18n'
 import { easeCine, easeLuxe } from '../lib/motion'
 import { lockScroll, scrollToTarget } from '../lib/scroll'
+import { pageOfSection, usePage } from '../lib/pages'
 import { Logo } from './Logo'
 
 export function Navigation({ ready }: { ready: boolean }) {
   const { t, tx } = useLang()
   const [open, setOpen] = useState(false)
+  const page = usePage()
+  // the link of the page on screen keeps its gold underline
+  const here = (href: string) => page !== 'home' && pageOfSection(href) === page
   const [hovered, setHovered] = useState(0)
   const [scrolled, setScrolled] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -78,7 +82,7 @@ export function Navigation({ ready }: { ready: boolean }) {
           >
             <Logo />
           </a>
-          <nav aria-label={t('Primary', 'Principal')} className={`hidden items-center gap-6 transition-opacity duration-500 lg:flex xl:gap-9 ${open ? "pointer-events-none opacity-0" : ""}`}>
+          <nav aria-label={t('Primary', 'Principal')} className={`hidden items-center gap-6 transition-opacity duration-500 lg:flex min-[1440px]:gap-9 ${open ? "pointer-events-none opacity-0" : ""}`}>
             {navItems.filter((n) => HEADER_LINKS.includes(n.href)).map((n) => (
               <a
                 key={n.href + n.label.en}
@@ -87,10 +91,11 @@ export function Navigation({ ready }: { ready: boolean }) {
                   e.preventDefault()
                   go(n.href)
                 }}
-                className={`group relative text-[0.6875rem] font-medium tracking-[0.24em] whitespace-nowrap text-bone/80 uppercase transition-colors hover:text-bone ${WIDE_ONLY.includes(n.href) ? 'hidden xl:inline-block' : ''}`}
+                aria-current={here(n.href) ? 'page' : undefined}
+                className={`group relative text-[0.6875rem] font-medium tracking-[0.24em] whitespace-nowrap uppercase transition-colors hover:text-bone ${here(n.href) ? 'text-bone' : 'text-bone/80'} ${WIDE_ONLY.includes(n.href) ? 'hidden min-[1440px]:inline-block' : ''}`}
               >
                 {tx(n.label)}
-                <span className="absolute -bottom-1.5 left-0 h-px w-full origin-right scale-x-0 bg-gold transition-transform duration-500 group-hover:origin-left group-hover:scale-x-100" />
+                <span className={`absolute -bottom-1.5 left-0 h-px w-full bg-gold transition-transform duration-500 ${here(n.href) ? 'scale-x-100' : 'origin-right scale-x-0 group-hover:origin-left group-hover:scale-x-100'}`} />
               </a>
             ))}
           </nav>

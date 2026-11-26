@@ -9,7 +9,7 @@ import { useLang } from '../i18n'
 import { easeCine, easeLuxe, useCalmScroll } from '../lib/motion'
 import { scrollToTarget } from '../lib/scroll'
 
-export function Hero({ ready: readyIn, revealed, reduced }: { ready: boolean; revealed: boolean; reduced: boolean }) {
+export function Hero({ ready: readyIn, revealed, reduced, load = true }: { ready: boolean; revealed: boolean; reduced: boolean; load?: boolean }) {
   const ref = useRef<HTMLElement>(null)
   // the opening: the film first shows only through the letters of RUNWAY, then the camera flies
   // through them into the full picture; the words of the hero arrive once it has opened
@@ -54,7 +54,7 @@ export function Hero({ ready: readyIn, revealed, reduced }: { ready: boolean; re
       >
         <motion.div className="absolute inset-0" style={calm ? undefined : { scale }}>
           {heroVideo ? (
-            <HeroBackdrop active={revealed || ready} />
+            <HeroBackdrop active={revealed || ready} load={load} />
           ) : (
             <WaterCanvas still={reduced} paused={!revealed} className="absolute inset-0" />
           )}

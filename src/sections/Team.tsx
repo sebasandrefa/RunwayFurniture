@@ -56,11 +56,16 @@ export function Team() {
   const x = useSpring(px, { stiffness: 170, damping: 22, mass: 0.6 })
   const y = useSpring(py, { stiffness: 170, damping: 22, mass: 0.6 })
   const lean = useSpring(useTransform(useVelocity(x), [-2200, 2200], [-12, 12], { clamp: true }), { stiffness: 220, damping: 26 })
-  const move = (e: React.PointerEvent) => {
+  const move = (e: React.PointerEvent, jump = false) => {
     const r = listRef.current?.getBoundingClientRect()
     if (!r) return
     px.set(e.clientX - r.left)
     py.set(e.clientY - r.top)
+    // arriving from outside the list: the portrait appears under the cursor, not flying in from a corner
+    if (jump) {
+      x.jump(e.clientX - r.left)
+      y.jump(e.clientY - r.top)
+    }
   }
 
   return (
@@ -115,7 +120,7 @@ export function Team() {
         </div>
 
         {/* roster */}
-        <ul ref={listRef} onPointerMove={fine ? move : undefined} className="group/list relative mt-16 border-b border-bone/10 md:mt-24">
+        <ul ref={listRef} onPointerMove={fine ? (e) => move(e) : undefined} className="group/list relative mt-16 border-b border-bone/10 md:mt-24">
           {team.map((m, i) => {
             const isOpen = open === i
             const panel = `${uid}-member-${i}`
@@ -133,7 +138,11 @@ export function Team() {
                   aria-expanded={isOpen}
                   aria-controls={panel}
                   onClick={() => setOpen(isOpen ? null : i)}
-                  onPointerEnter={() => fine && setHover(i)}
+                  onPointerEnter={(e) => {
+                    if (!fine) return
+                    move(e, hover === null)
+                    setHover(i)
+                  }}
                   onPointerLeave={() => fine && setHover(null)}
                   className="group relative grid w-full grid-cols-[auto_1fr_auto] items-center gap-x-4 py-6 text-left md:grid-cols-[4rem_1fr_minmax(0,18rem)_3rem] md:gap-x-8 md:py-8"
                 >

@@ -2,7 +2,7 @@ name: Security
 
 on:
   push:
-    branches: [claude/exciting-mendel-621i1t, main]
+    branches: [main]
   pull_request:
   schedule:
     - cron: '17 6 * * 1' # weekly, catches newly disclosed CVEs

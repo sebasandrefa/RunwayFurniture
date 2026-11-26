@@ -21,6 +21,7 @@ import { Contact } from './sections/Contact'
 import { Footer } from './sections/Footer'
 import { Founder } from './sections/Founder'
 import { FounderFilm } from './sections/FounderFilm'
+import { Team } from './sections/Team'
 import { LiveDifferent } from './sections/LiveDifferent'
 import { Global } from './sections/Global'
 import { Hero } from './sections/Hero'
@@ -61,7 +62,7 @@ export default function App() {
   // all at once froze the page for up to a second just as the opening film began (longer on modest
   // phones and computers). A link to a section, or a visitor racing ahead, builds the rest at once.
   const [built, setBuilt] = useState(0)
-  const total = 20
+  const total = 21
   useEffect(() => {
     if (!rest || built >= total) return
     if (built === 0 && /^#(?!\/)./.test(location.hash)) return void setBuilt(total)
@@ -89,6 +90,10 @@ export default function App() {
     return () => cancelAnimationFrame(id)
   }, [built])
   const [revealed, setRevealed] = useState(!intro)
+  // the hero film (several megabytes) waits until the opening scene is on screen, so it never
+  // takes the connection from the 3D mark (which would fall back to its 2D stand-in)
+  const [scene, setScene] = useState(!intro)
+  const onScene = useCallback(() => setScene(true), [])
   const onReveal = useCallback(() => setRevealed(true), [])
   const [project, setProject] = useState<Project | null>(fromHash)
   const onReady = useCallback(() => setReady(true), [])
@@ -154,6 +159,7 @@ export default function App() {
     <Factory key="factory" />,
     <Founder key="founder" />,
     <FounderFilm key="founder-film" />,
+    <Team key="team" />,
     <LiveDifferent key="live" />,
     <Films key="films" />,
     <Awards key="awards" />,
@@ -168,10 +174,10 @@ export default function App() {
         {t('Skip to content', 'Saltar al contenido')}
       </a>
       <ScrollProgress />
-      {intro && <Preloader onDone={onReady} onReveal={onReveal} onSettle={onSettle} reduced={reduced} />}
+      {intro && <Preloader onDone={onReady} onReveal={onReveal} onSettle={onSettle} onScene={onScene} reduced={reduced} />}
       <Navigation ready={ready} />
       <main id="main">
-        <Hero ready={ready} revealed={revealed} reduced={reduced} />
+        <Hero ready={ready} revealed={revealed} reduced={reduced} load={scene || revealed} />
         {parts.slice(0, built)}
       </main>
       {built >= parts.length && <Footer />}

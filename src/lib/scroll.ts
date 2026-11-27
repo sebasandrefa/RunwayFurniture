@@ -36,11 +36,40 @@ export function scrollToTarget(target: string | HTMLElement, tries = 0) {
     requestAnimationFrame(() => scrollToTarget(target, tries + 1))
     return
   }
-  if (lenis) lenis.scrollTo(el, { offset: 0, duration: 1.6 })
-  else el.scrollIntoView({ behavior: 'smooth' })
+  // the section was only just built: let the pinned scenes above it take their room first
+  if (tries > 0) ScrollTrigger.refresh()
+  const dest = el
+  if (lenis) lenis.scrollTo(el, { offset: 0, duration: 1.6, onComplete: () => holdAt(dest) })
+  else {
+    el.scrollIntoView({ behavior: 'smooth' })
+    window.setTimeout(() => holdAt(dest), 1200)
+  }
   // Move focus for keyboard and screen-reader users.
   el.setAttribute('tabindex', '-1')
   el.focus({ preventScroll: true })
+}
+
+/**
+ * Keep a section at the top of the screen while the page settles (photos arriving, pinned scenes
+ * measured late), so a button never leaves the visitor halfway through the section before it.
+ * Lets go at once when the visitor scrolls or presses a key.
+ */
+export function holdAt(el: HTMLElement, ms = 4000) {
+  const end = performance.now() + ms
+  let stop = false
+  const quit = () => (stop = true)
+  const events = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const
+  events.forEach((e) => window.addEventListener(e, quit, { passive: true }))
+  const tick = () => {
+    if (stop || !el.isConnected || performance.now() > end) {
+      events.forEach((e) => window.removeEventListener(e, quit))
+      return
+    }
+    const top = el.getBoundingClientRect().top
+    if (Math.abs(top) > 2) jumpBy(top)
+    requestAnimationFrame(tick)
+  }
+  requestAnimationFrame(tick)
 }
 
 /** Put the page at a given height at once (a new page starts at the top). */

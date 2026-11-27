@@ -5,7 +5,7 @@ import { Preloader } from './components/Preloader'
 import { picReady } from './components/Pic'
 import { projects, type Project } from './data/site'
 import { easeCine, easeLuxe, useCalmScroll, usePrefersReducedMotion } from './lib/motion'
-import { initSmoothScroll, jumpTo, lockScroll, restorePlace, scrollToTarget, ScrollTrigger } from './lib/scroll'
+import { holdAt, initSmoothScroll, jumpTo, lockScroll, restorePlace, scrollToTarget, ScrollTrigger } from './lib/scroll'
 import { currentPage, pageFromHash, pageTitle, setCurrentPage, type PageId } from './lib/pages'
 import { Explore } from './sections/Explore'
 import { ScrollProgress } from './components/ScrollProgress'
@@ -185,6 +185,7 @@ export default function App() {
             if (el) {
               jumpTo(Math.max(0, el.getBoundingClientRect().top + window.scrollY))
               ScrollTrigger.update()
+              holdAt(el)
             }
             setCurtain(null)
             busy.current = false
